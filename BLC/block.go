@@ -1,8 +1,11 @@
 package BLC
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
 	"encoding/hex"
+	"log"
 	"strconv"
 	"time"
 )
@@ -50,4 +53,34 @@ func (blc *Block) SetHash() *Block {
 	blc.Hash = hex.EncodeToString(hash[:])
 
 	return blc
+}
+
+/*
+	将区块序列化为字节数组
+*/
+func (blc *Block) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
+
+	err := encoder.Encode(blc)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return result.Bytes()
+}
+
+/*
+	反序列化字节数组为区块
+*/
+func DeserializeBlock(data []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(&block)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return &block
 }
