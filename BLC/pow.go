@@ -2,6 +2,7 @@ package BLC
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"math/big"
 	"strconv"
 )
@@ -32,6 +33,24 @@ func (pow *POW) PrepareData(nonce int64) []byte {
 
 }
 
+/*
+
+ */
+func (pow *POW) IsValid() bool {
+	var hashInt big.Int
+	var hash [32]byte
+	data := pow.PrepareData(pow.block.Nonce)
+
+	hash = sha256.Sum256(data)
+	hashInt.SetBytes(hash[:])
+
+	if pow.target.Cmp(&hashInt) == 1 {
+		return true
+	}
+
+	return false
+}
+
 func (pow *POW) Run() ([]byte, int64) {
 	// 将block属性拼接为字节数组
 
@@ -46,10 +65,12 @@ func (pow *POW) Run() ([]byte, int64) {
 
 		hash = sha256.Sum256(data)
 		hashInt.SetBytes(hash[:])
-
+		fmt.Printf("try:%v hash:%x\n", nonce, hash[:])
 		if pow.target.Cmp(&hashInt) == 1 {
+			fmt.Printf("got it!\n")
 			break
 		}
+
 		nonce++
 	}
 	return hash[:], nonce
