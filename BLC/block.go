@@ -15,7 +15,6 @@ import (
 	Timestamp 显而易见就是块生成时的时间戳
 	Hash 是这个块通过 SHA256 算法生成的散列值
 	PrevHash 代表前一个块的 SHA256 散列值
-	BPM 每分钟心跳速度
 */
 
 type Block struct {

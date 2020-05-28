@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 
 	. "blockChain/BLC"
+	_ "blockChain/database"
 )
 
 type Message struct {
