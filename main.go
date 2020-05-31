@@ -5,10 +5,8 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 
 	. "blockChain/BLC"
@@ -35,18 +33,19 @@ func handleWriteBlock(w http.ResponseWriter, r *http.Request) {
 	data := r.Form.Get("data")
 
 	chain := GetChain()
-	newBlock, err := chain.Add(data)
+	newBlock, err := chain.Add(nil)
 	if err != nil {
 		respondWithJSON(w, r, http.StatusInternalServerError, data)
 		return
 	}
 
-	respondWithJSON(w, r, http.StatusCreated, newBlock)
+	respondWithJSON(w, r, http.StatusCreated, newBlock.LastBlock)
 
 }
 
 func handleGetBlockchain(w http.ResponseWriter, r *http.Request) {
-	chain := GetChain()
+	chain := GetBlockList()
+
 	bytes, err := json.MarshalIndent(chain, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -65,7 +64,7 @@ func makeMuxRouter() http.Handler {
 func run() error {
 	mux := makeMuxRouter()
 	httpAddr := "8080"
-	log.Println("Listening on ", os.Getenv("ADDR"))
+
 	s := &http.Server{
 		Addr:           ":" + httpAddr,
 		Handler:        mux,
@@ -75,6 +74,7 @@ func run() error {
 	}
 
 	if err := s.ListenAndServe(); err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -82,16 +82,13 @@ func run() error {
 }
 
 func main() {
-	var err error
-	//err := godotenv.Load()
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	go func() {
-		NewBlockChain()
-		spew.Dump(GetChain)
+		//chain := GetChain()
+		//chain.Db.Read([]byte("l"))
+		//spew.Dump(GetChain)
 
 	}()
-	log.Fatal(run())
+	run()
+
 }

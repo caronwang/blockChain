@@ -6,37 +6,98 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-var (
-	DB *bolt.DB
-)
+type BlockChainDB struct {
+	Conn      *bolt.DB
+	TableName string
+}
 
-func init() {
-	var err error
-	DB, err = bolt.Open("blkchain.db", 0600, nil)
+func NewBlockChainDB(dbPath, tableName string) *BlockChainDB {
+
+	conn, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("连接数据库成功！")
 
-	//更新表数据
-	err = DB.Update(func(tx *bolt.Tx) error {
+	bc := &BlockChainDB{
+		Conn:      conn,
+		TableName: tableName,
+	}
 
-		//创建表 BlockBucket
-		// b, err := tx.CreateBucket([]byte("BlockBucket"))
-		// if err != nil {
-		// 	return err
-		// }
+	if !bc.HasTable() {
+		bc.createTable()
+		log.Println("创建表成功")
+	}
 
-		b := tx.Bucket([]byte("BlockBucket"))
+	return bc
+}
 
-		//存储数据
+func (db *BlockChainDB) HasTable() bool {
+	res := false
+	_ = db.Conn.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(db.TableName))
 		if b != nil {
-			err := b.Put([]byte("l"), []byte("testing"))
-			if err != nil {
-				log.Panic("数据存储失败！")
-			}
+			res = true
+			return nil
+		}
+		return nil
+	})
+	return res
+}
+
+func (db *BlockChainDB) createTable() error {
+	_ = db.Conn.Update(func(tx *bolt.Tx) error {
+
+		_, err := tx.CreateBucket([]byte(db.TableName))
+		if err != nil {
+			log.Println(err)
+			return err
 		}
 
 		return nil
 	})
+	return nil
+}
+
+/*
+	写入Key
+*/
+func (db *BlockChainDB) Write(key []byte, value []byte) error {
+
+	err := db.Conn.Update(func(tx *bolt.Tx) error {
+
+		b := tx.Bucket([]byte(db.TableName))
+		//存储数据
+		if b != nil {
+			err := b.Put(key, value)
+			if err != nil {
+				log.Panic("数据存储失败！")
+			}
+		} else {
+			log.Panic(db.TableName, "不存在")
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+func (db *BlockChainDB) Read(key []byte) []byte {
+	var data []byte
+	//spew.Dump(db)
+	_ = db.Conn.View(func(tx *bolt.Tx) error {
+
+		b := tx.Bucket([]byte(db.TableName))
+		//存储数据
+		if b != nil {
+			data = b.Get(key)
+			return nil
+		} else {
+
+			log.Panic(db.TableName, "不存在")
+		}
+
+		return nil
+	})
+	return data
 }

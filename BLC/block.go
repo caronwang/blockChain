@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -20,18 +22,21 @@ import (
 type Block struct {
 	Index     int64
 	Timestamp int64
-	Data      string
+	Txs       []*Transaction
 	Hash      string
 	PrevHash  string
 	Nonce     int64
 }
 
-func CreateBlock(index int64, prevHash string, data string) *Block {
+/*
+	创建区块
+*/
+func CreateBlock(index int64, prevHash string, txs []*Transaction) *Block {
 	blc := Block{
 		Index:     index,
 		Timestamp: time.Now().Unix(),
 		PrevHash:  prevHash,
-		Data:      data,
+		Txs:       txs,
 	}
 	//blc.SetHash()
 
@@ -47,7 +52,12 @@ func CreateBlock(index int64, prevHash string, data string) *Block {
 
 func (blc *Block) SetHash() *Block {
 
-	d := strconv.FormatInt(blc.Index, 10) + strconv.FormatInt(blc.Timestamp, 10) + blc.PrevHash + blc.Data
+	txsString, err := json.Marshal(blc.Txs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	d := strconv.FormatInt(blc.Index, 10) + strconv.FormatInt(blc.Timestamp, 10) + blc.PrevHash + string(txsString)
 	hash := sha256.Sum256([]byte(d))
 	blc.Hash = hex.EncodeToString(hash[:])
 
@@ -82,4 +92,17 @@ func DeserializeBlock(data []byte) *Block {
 	}
 
 	return &block
+}
+
+/*
+	挖掘新的区块
+*/
+func MineNewBlock(from []string, to []string, amount []string) {
+	fmt.Println(from)
+	fmt.Println(to)
+	fmt.Println(amount)
+
+	//1.通过相关算法建立Transaction数组
+	//var txs []*Transaction
+
 }

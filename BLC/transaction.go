@@ -50,3 +50,7 @@ func (tx *Transaction) HashTransaction() {
 	tx.Txhash = hash[:]
 	return
 }
+
+func Send(from []string, to []string, amount []string) {
+	MineNewBlock(from, to, amount)
+}

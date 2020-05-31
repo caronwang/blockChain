@@ -2,9 +2,12 @@ package BLC
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"strconv"
+	"time"
 )
 
 /*
@@ -28,7 +31,17 @@ func NewPOW(blk *Block) *POW {
 }
 
 func (pow *POW) PrepareData(nonce int64) []byte {
-	data := strconv.FormatInt(pow.block.Index, 10) + strconv.FormatInt(pow.block.Timestamp, 10) + strconv.FormatInt(nonce, 10) + pow.block.PrevHash + pow.block.Data
+
+	txsString, err := json.Marshal(pow.block.Txs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	data := strconv.FormatInt(pow.block.Index, 10) +
+		strconv.FormatInt(pow.block.Timestamp, 10) +
+		strconv.FormatInt(nonce, 10) + pow.block.PrevHash +
+		string(txsString)
+
 	return []byte(data)
 
 }
@@ -60,14 +73,17 @@ func (pow *POW) Run() ([]byte, int64) {
 	var nonce int64 = 0
 	var hashInt big.Int
 	var hash [32]byte
+	t := time.Now()
 	for {
 		data := pow.PrepareData(nonce)
 
 		hash = sha256.Sum256(data)
 		hashInt.SetBytes(hash[:])
-		fmt.Printf("try:%v hash:%x\n", nonce, hash[:])
+
+		fmt.Printf("\r")
+		fmt.Printf("try:%v hash:%x", nonce, hash[:])
 		if pow.target.Cmp(&hashInt) == 1 {
-			fmt.Printf("got it!\n")
+			fmt.Printf("\n挖矿完成!耗时%s\n", time.Since(t).String())
 			break
 		}
 
