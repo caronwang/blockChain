@@ -56,7 +56,9 @@ func init() {
 	db := database.NewBlockChainDB(dbName, tableName)
 	if db.Read([]byte("l")) == nil {
 		log.Println("创建创世区块")
-		blc := CreateBlock(1, "", nil)
+
+		txs := NewCoinbaseTransaction("user")
+		blc := CreateBlock(1, "", []*Transaction{txs})
 
 		err := db.Write([]byte("l"), []byte(blc.Hash))
 		if err != nil {
@@ -102,7 +104,6 @@ func GetBlockList() []*Block {
 }
 
 func GetChain() *BlockChain {
-
 	return blockChain
 }
 
