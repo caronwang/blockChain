@@ -8,3 +8,10 @@ type TXInput struct {
 	//用户数字签名
 	ScriptSign string
 }
+
+/*
+	判断当前消费是否属于当前Address
+*/
+func (txIntput *TXInput) UnlockWithAddress(addr string) bool {
+	return txIntput.ScriptSign == addr
+}
