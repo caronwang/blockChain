@@ -6,8 +6,6 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"log"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 /*
@@ -62,23 +60,53 @@ func (tx *Transaction) HashTransaction() {
 }
 
 /*
+
+ */
+func GetTXInputs(txs []*Transaction, addr string, amount int) ([]*TXInput, int) {
+	var result []*TXInput
+	balance := 0
+	for i, tx := range txs {
+		if balance >= amount {
+			break
+		}
+
+		for index, vout := range tx.Vouts {
+			if vout.ScriptPubKey == addr {
+				balance += vout.Value
+				result = append(result, &TXInput{TxHash: txs[i].Txhash, Vout: index, ScriptSign: addr})
+			}
+		}
+	}
+
+	return result, balance
+}
+
+/*
 	创建交易
 
 */
 func NewTransaction(from string, to string, amount int) *Transaction {
 	log.Printf("[transaction] %s -> %s : %v\n", from, to, amount)
 
-	var inputs []*TXInput
-	txInput := &TXInput{
-		TxHash:     []byte{},
-		Vout:       -1,
-		ScriptSign: from,
+	//检查from address的余额
+	balance, txs := GetBalanceByAddress(from)
+	if balance < amount {
+		log.Printf("[%v]余额不足,当前余额%v", from, balance)
+		return nil
 	}
-	inputs = append(inputs, txInput)
+
+	inputs, tBalance := GetTXInputs(txs, from, amount)
+	// var inputs []*TXInput
+	// txInput := &TXInput{
+	// 	TxHash:     []byte{},
+	// 	Vout:       -1,
+	// 	ScriptSign: from,
+	// }
+	// inputs = append(inputs, txInput)
 
 	var outputs []*TXOutput
 	txOuput_from := &TXOutput{
-		Value:        amount,
+		Value:        tBalance - amount,
 		ScriptPubKey: from,
 	}
 	txOuput_to := &TXOutput{
@@ -94,7 +122,7 @@ func NewTransaction(from string, to string, amount int) *Transaction {
 	}
 
 	tx.HashTransaction()
-	log.Println(tx)
+	//log.Println(tx)
 	return tx
 }
 
@@ -129,7 +157,7 @@ func GetValidTxInputsByAddress(addr string) ([]*Transaction, error) {
 	spendTXOutputs := make(map[string][]int)
 
 	for it := GetChain().Iterator(); it.HasNext(); it.Next() {
-		log.Println(it.Value.Index)
+		//log.Println(it.Value.Index)
 		block := it.Value
 
 		for _, tx := range block.Txs {
@@ -150,6 +178,7 @@ func GetValidTxInputsByAddress(addr string) ([]*Transaction, error) {
 			}
 		}
 	}
+	txs = ReverseTransArray(txs)
 	//spew.Dump(txs)
 	return txs, nil
 }
@@ -157,9 +186,10 @@ func GetValidTxInputsByAddress(addr string) ([]*Transaction, error) {
 /*
 	通过Address获取账户余额
 */
-func GetBalanceByAddress(addr string) int {
+func GetBalanceByAddress(addr string) (int, []*Transaction) {
 	var balance int
-	log.Println("地址:", addr)
+
+	//log.Println("地址:", addr)
 
 	txs, err := GetValidTxInputsByAddress(addr)
 	if err != nil {
@@ -169,12 +199,12 @@ func GetBalanceByAddress(addr string) int {
 	for _, tx := range txs {
 		for _, out := range tx.Vouts {
 			if out.ScriptPubKey == addr {
-				spew.Dump(tx)
-				log.Println(out.Value)
+				//spew.Dump(tx)
+				log.Println("[rebalance]+", out.Value)
 				balance += out.Value
 			}
 		}
 	}
 
-	return balance
+	return balance, txs
 }

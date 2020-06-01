@@ -2,6 +2,7 @@ package BLC
 
 import (
 	"blockChain/database"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -140,7 +141,7 @@ func GetChain() *BlockChain {
 /*
 	挖掘新的区块
 */
-func MineNewBlock(from []string, to []string, amount []string) {
+func MineNewBlock(from []string, to []string, amount []string) error {
 	fmt.Println("from:", from)
 	fmt.Println("to:", to)
 	fmt.Println("amount:", amount)
@@ -155,9 +156,12 @@ func MineNewBlock(from []string, to []string, amount []string) {
 				log.Panic(err)
 			}
 			ntx := NewTransaction(from[i], to[i], t_amount)
+			if ntx == nil {
+				return errors.New(fmt.Sprintf("%v转账%v : %v失败！", from[i], to[i], t_amount))
+			}
 			txs = append(txs, ntx)
 		} else {
-			log.Panic("输入参数有误！")
+			return errors.New("输入参数有误！")
 		}
 
 	}
@@ -170,6 +174,7 @@ func MineNewBlock(from []string, to []string, amount []string) {
 	blockChain.Db.Write([]byte("l"), []byte(block.Hash))
 	blockChain.Db.Write([]byte(block.Hash), dataBlock)
 	blockChain.LastBlock = block
+	return nil
 }
 
 func (blc *BlockChain) Add(txs []*Transaction) (*BlockChain, error) {

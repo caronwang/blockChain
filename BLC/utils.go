@@ -10,3 +10,14 @@ func JsonToArray(data string) ([]string, error) {
 	}
 	return arr, nil
 }
+
+func ReverseTransArray(orgArr []*Transaction) []*Transaction {
+	var arr []*Transaction
+	if len(orgArr) == 0 {
+		return arr
+	}
+	for i := len(orgArr) - 1; i >= 0; i-- {
+		arr = append(arr, orgArr[i])
+	}
+	return arr
+}

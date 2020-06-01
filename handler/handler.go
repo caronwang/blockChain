@@ -43,7 +43,11 @@ func HandleTrans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	MineNewBlock(result.From, result.To, result.Amount)
+	err = MineNewBlock(result.From, result.To, result.Amount)
+	if err != nil {
+		RespondWithJSON(w, r, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	RespondWithJSON(w, r, http.StatusOK, result)
 }
@@ -88,7 +92,7 @@ func HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	addr := query.Get("addr")
-	balance := GetBalanceByAddress(addr)
+	balance, _ := GetBalanceByAddress(addr)
 
 	info := map[string]string{"address": addr, "balance": strconv.Itoa(balance)}
 	bytes, err := json.MarshalIndent(info, "", "  ")
