@@ -16,6 +16,8 @@ func MakeMuxRouter() http.Handler {
 	muxRouter.HandleFunc("/", HandleGetBlockchain).Methods("GET")
 	muxRouter.HandleFunc("/", HandleWriteBlock).Methods("POST")
 	muxRouter.HandleFunc("/trans", HandleTrans).Methods("POST")
+	muxRouter.HandleFunc("/init", HandleInit).Methods("POST")
+	muxRouter.HandleFunc("/balance", HandleGetBalance).Methods("GET")
 	return muxRouter
 }
 

@@ -6,7 +6,6 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -92,17 +91,4 @@ func DeserializeBlock(data []byte) *Block {
 	}
 
 	return &block
-}
-
-/*
-	挖掘新的区块
-*/
-func MineNewBlock(from []string, to []string, amount []string) {
-	fmt.Println("from:", from)
-	fmt.Println("to:", to)
-	fmt.Println("amount:", amount)
-
-	//1.通过相关算法建立Transaction数组
-	//var txs []*Transaction
-
 }

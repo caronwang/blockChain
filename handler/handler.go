@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 )
 
 type Message struct {
@@ -42,9 +43,16 @@ func HandleTrans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//newBlock, err := chain.Add(nil)
-	Send(result.From, result.To, result.Amount)
+	MineNewBlock(result.From, result.To, result.Amount)
+
 	RespondWithJSON(w, r, http.StatusOK, result)
+}
+
+func HandleInit(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	usr := r.Form.Get("usr")
+	blc := NewGenesysBlock(usr)
+	RespondWithJSON(w, r, http.StatusOK, blc)
 }
 
 func HandleWriteBlock(w http.ResponseWriter, r *http.Request) {
@@ -64,8 +72,26 @@ func HandleWriteBlock(w http.ResponseWriter, r *http.Request) {
 
 func HandleGetBlockchain(w http.ResponseWriter, r *http.Request) {
 	chain := GetBlockList()
-
+	if len(chain) == 0 {
+		io.WriteString(w, string("[]"))
+		return
+	}
 	bytes, err := json.MarshalIndent(chain, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	io.WriteString(w, string(bytes))
+}
+
+func HandleGetBalance(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+
+	addr := query.Get("addr")
+	balance := GetBalanceByAddress(addr)
+
+	info := map[string]string{"address": addr, "balance": strconv.Itoa(balance)}
+	bytes, err := json.MarshalIndent(info, "", "  ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

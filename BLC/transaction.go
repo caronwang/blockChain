@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"log"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 /*
@@ -22,6 +25,13 @@ type Transaction struct {
 	Vouts []*TXOutput
 }
 
+func (tx *Transaction) IsCoinbaseTransaction() bool {
+	return len(tx.Vins[0].TxHash) == 0 && tx.Vins[0].Vout == -1
+}
+
+/*
+	创建创世交易
+*/
 func NewCoinbaseTransaction(address string) *Transaction {
 	//代表消费
 	txInput := &TXInput{TxHash: []byte{}, Vout: -1, ScriptSign: "genesys data"}
@@ -35,7 +45,7 @@ func NewCoinbaseTransaction(address string) *Transaction {
 }
 
 /*
-	设置hash值
+	设置Transaction的hash值
 */
 func (tx *Transaction) HashTransaction() {
 	var result bytes.Buffer
@@ -51,6 +61,120 @@ func (tx *Transaction) HashTransaction() {
 	return
 }
 
-func Send(from []string, to []string, amount []string) {
-	MineNewBlock(from, to, amount)
+/*
+	创建交易
+
+*/
+func NewTransaction(from string, to string, amount int) *Transaction {
+	log.Printf("[transaction] %s -> %s : %v\n", from, to, amount)
+
+	var inputs []*TXInput
+	txInput := &TXInput{
+		TxHash:     []byte{},
+		Vout:       -1,
+		ScriptSign: from,
+	}
+	inputs = append(inputs, txInput)
+
+	var outputs []*TXOutput
+	txOuput_from := &TXOutput{
+		Value:        amount,
+		ScriptPubKey: from,
+	}
+	txOuput_to := &TXOutput{
+		Value:        amount,
+		ScriptPubKey: to,
+	}
+	outputs = append(outputs, txOuput_from, txOuput_to)
+
+	tx := &Transaction{
+		Txhash: []byte{},
+		Vins:   inputs,
+		Vouts:  outputs,
+	}
+
+	tx.HashTransaction()
+	log.Println(tx)
+	return tx
+}
+
+/*
+	查看TXOutput是否已经被消费
+*/
+func (tx *Transaction) IsSpend(addr string, spendTXOutputs map[string][]int) bool {
+	for index, out := range tx.Vouts {
+		if out.UnlockWithAddress(addr) {
+			if spendTXOutputs != nil {
+				for txHash, indexArray := range spendTXOutputs {
+					if txHash == hex.EncodeToString(tx.Txhash) {
+						for _, i := range indexArray {
+							if index == i {
+								return true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+/*
+	通过Address获取账户余额相关交易
+*/
+func GetValidTxInputsByAddress(addr string) ([]*Transaction, error) {
+	var txs []*Transaction
+	spendTXOutputs := make(map[string][]int)
+
+	for it := GetChain().Iterator(); it.HasNext(); it.Next() {
+		log.Println(it.Value.Index)
+		block := it.Value
+
+		for _, tx := range block.Txs {
+			/*
+				判断是否为创世区块
+			*/
+			if !tx.IsCoinbaseTransaction() {
+				for _, in := range tx.Vins {
+					if in.UnlockWithAddress(addr) {
+						key := hex.EncodeToString(in.TxHash)
+						spendTXOutputs[key] = append(spendTXOutputs[key], in.Vout)
+					}
+				}
+			}
+
+			if !tx.IsSpend(addr, spendTXOutputs) {
+				txs = append(txs, tx)
+			}
+		}
+	}
+	//spew.Dump(txs)
+	return txs, nil
+}
+
+/*
+	通过Address获取账户余额
+*/
+func GetBalanceByAddress(addr string) int {
+	var balance int
+	log.Println("地址:", addr)
+
+	txs, err := GetValidTxInputsByAddress(addr)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	for _, tx := range txs {
+		for _, out := range tx.Vouts {
+			if out.ScriptPubKey == addr {
+				spew.Dump(tx)
+				log.Println(out.Value)
+				balance += out.Value
+			}
+		}
+	}
+
+	return balance
 }
