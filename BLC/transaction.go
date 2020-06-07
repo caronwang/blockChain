@@ -78,7 +78,6 @@ func GetTXInputs(utxos []*UTXO, addr string, amount int) ([]*TXInput, int) {
 
 /*
 	创建交易
-
 */
 func NewTransaction(from string, to string, amount int) *Transaction {
 	log.Printf("[transaction] %s -> %s : %v\n", from, to, amount)
@@ -149,7 +148,13 @@ func GetValidTxInputsByAddress(addr string) ([]*UTXO, error) {
 		//log.Println(it.Value.Index)
 		block := it.Value
 
-		for _, tx := range block.Txs {
+		if len(block.Txs) == 0 {
+			continue
+		}
+
+		for i := len(block.Txs) - 1; i >= 0; i-- {
+			tx := block.Txs[i]
+
 			/*
 				判断是否为创世区块
 			*/
@@ -163,13 +168,11 @@ func GetValidTxInputsByAddress(addr string) ([]*UTXO, error) {
 			}
 
 			if !tx.IsSpend(addr, spendTXOutputs) {
-
 				for idx, out := range tx.Vouts {
 					if out.UnlockWithAddress(addr) {
 						txs = append(txs, &UTXO{Txhash: tx.Txhash, Index: idx, TxOutPut: *out})
 					}
 				}
-
 			}
 		}
 	}
@@ -179,7 +182,7 @@ func GetValidTxInputsByAddress(addr string) ([]*UTXO, error) {
 }
 
 /*
-	通过Address获取Token
+	通过Address获取Token和UTXO
 */
 func GetBalanceByAddress(addr string) (int, []*UTXO) {
 	var balance int

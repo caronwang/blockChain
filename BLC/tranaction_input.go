@@ -12,6 +12,6 @@ type TXInput struct {
 /*
 	判断当前消费是否属于当前Address
 */
-func (txIntput *TXInput) UnlockWithAddress(addr string) bool {
-	return txIntput.ScriptSign == addr
+func (txInput *TXInput) UnlockWithAddress(addr string) bool {
+	return txInput.ScriptSign == addr
 }
