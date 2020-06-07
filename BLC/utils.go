@@ -21,3 +21,14 @@ func ReverseTransArray(orgArr []*Transaction) []*Transaction {
 	}
 	return arr
 }
+
+func ReverseUTXOArray(orgArr []*UTXO) []*UTXO {
+	var arr []*UTXO
+	if len(orgArr) == 0 {
+		return arr
+	}
+	for i := len(orgArr) - 1; i >= 0; i-- {
+		arr = append(arr, orgArr[i])
+	}
+	return arr
+}

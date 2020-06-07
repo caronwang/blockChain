@@ -60,22 +60,17 @@ func (tx *Transaction) HashTransaction() {
 }
 
 /*
-
- */
-func GetTXInputs(txs []*Transaction, addr string, amount int) ([]*TXInput, int) {
+	生成交易的TXInputs
+*/
+func GetTXInputs(utxos []*UTXO, addr string, amount int) ([]*TXInput, int) {
 	var result []*TXInput
 	balance := 0
-	for i, tx := range txs {
+	for _, utxo := range utxos {
 		if balance >= amount {
 			break
 		}
-
-		for index, vout := range tx.Vouts {
-			if vout.ScriptPubKey == addr {
-				balance += vout.Value
-				result = append(result, &TXInput{TxHash: txs[i].Txhash, Vout: index, ScriptSign: addr})
-			}
-		}
+		balance += utxo.TxOutPut.Value
+		result = append(result, &TXInput{TxHash: utxo.Txhash, Vout: utxo.Index, ScriptSign: addr})
 	}
 
 	return result, balance
@@ -96,13 +91,6 @@ func NewTransaction(from string, to string, amount int) *Transaction {
 	}
 
 	inputs, tBalance := GetTXInputs(txs, from, amount)
-	// var inputs []*TXInput
-	// txInput := &TXInput{
-	// 	TxHash:     []byte{},
-	// 	Vout:       -1,
-	// 	ScriptSign: from,
-	// }
-	// inputs = append(inputs, txInput)
 
 	var outputs []*TXOutput
 	txOuput_from := &TXOutput{
@@ -150,10 +138,11 @@ func (tx *Transaction) IsSpend(addr string, spendTXOutputs map[string][]int) boo
 }
 
 /*
-	通过Address获取账户余额相关交易
+	通过Address获取账户Token相关交易
 */
-func GetValidTxInputsByAddress(addr string) ([]*Transaction, error) {
-	var txs []*Transaction
+func GetValidTxInputsByAddress(addr string) ([]*UTXO, error) {
+	var txs []*UTXO
+
 	spendTXOutputs := make(map[string][]int)
 
 	for it := GetChain().Iterator(); it.HasNext(); it.Next() {
@@ -174,37 +163,37 @@ func GetValidTxInputsByAddress(addr string) ([]*Transaction, error) {
 			}
 
 			if !tx.IsSpend(addr, spendTXOutputs) {
-				txs = append(txs, tx)
+
+				for idx, out := range tx.Vouts {
+					if out.UnlockWithAddress(addr) {
+						txs = append(txs, &UTXO{Txhash: tx.Txhash, Index: idx, TxOutPut: *out})
+					}
+				}
+
 			}
 		}
 	}
-	txs = ReverseTransArray(txs)
+	txs = ReverseUTXOArray(txs)
 	//spew.Dump(txs)
 	return txs, nil
 }
 
 /*
-	通过Address获取账户余额
+	通过Address获取Token
 */
-func GetBalanceByAddress(addr string) (int, []*Transaction) {
+func GetBalanceByAddress(addr string) (int, []*UTXO) {
 	var balance int
 
 	//log.Println("地址:", addr)
 
-	txs, err := GetValidTxInputsByAddress(addr)
+	utxos, err := GetValidTxInputsByAddress(addr)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	for _, tx := range txs {
-		for _, out := range tx.Vouts {
-			if out.ScriptPubKey == addr {
-				//spew.Dump(tx)
-				log.Println("[rebalance]+", out.Value)
-				balance += out.Value
-			}
-		}
+	for _, utxo := range utxos {
+		balance += utxo.TxOutPut.Value
 	}
 
-	return balance, txs
+	return balance, utxos
 }
