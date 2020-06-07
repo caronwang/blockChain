@@ -1,6 +1,8 @@
 package BLC
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 func JsonToArray(data string) ([]string, error) {
 	var arr []string
