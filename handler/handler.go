@@ -3,6 +3,7 @@ package Handler
 import (
 	. "blockChain/BLC"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -101,4 +102,33 @@ func HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	io.WriteString(w, string(bytes))
+}
+
+/*
+	打印所有的钱包地址
+*/
+func HandleGetwalletAddressList(w http.ResponseWriter, r *http.Request) {
+	ws := NewWallets()
+	info := []string{}
+	for k, _ := range ws.WMap {
+		fmt.Println(k)
+		info = append(info, k)
+	}
+	bytes, err := json.MarshalIndent(info, "", "  ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	io.WriteString(w, string(bytes))
+}
+
+/*
+	创建钱包
+*/
+func HandleCreateWallet(w http.ResponseWriter, r *http.Request) {
+
+	ws := NewWallets()
+
+	addr := ws.CreateWallet()
+	io.WriteString(w, addr)
 }

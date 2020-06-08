@@ -80,6 +80,12 @@ func GetTXInputs(utxos []*UTXO, addr string, amount int) ([]*TXInput, int) {
 	创建交易
 */
 func NewTransaction(from string, to string, amount int) *Transaction {
+
+	if !ValidateAddress(from) || !ValidateAddress(to) {
+		log.Printf("地址无效\n")
+		return nil
+	}
+
 	log.Printf("[transaction] %s -> %s : %v\n", from, to, amount)
 
 	//检查from address的余额
